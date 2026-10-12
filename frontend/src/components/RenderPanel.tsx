@@ -107,7 +107,16 @@ export default function RenderPanel({ source, duration, aspectRatio, quality, ca
       {!canRender && source !== "" && (
         <div className="notice warn" style={{ marginTop: 10 }}>
           Rendering is disabled: the current source has no deterministic{" "}
-          <code style={{ fontFamily: "var(--mono)" }}>renderFrame</code> interface.
+          <code style={{ fontFamily: "var(--mono)" }}>renderFrame</code> interface. The
+          renderer seeks to exact timestamps (frame 150 = t 5.0s), so your animation must
+          expose{" "}
+          <code style={{ fontFamily: "var(--mono)" }}>
+            window.anim = {"{ init(), renderFrame(t), dispose() }"}
+          </code>{" "}
+          where <code style={{ fontFamily: "var(--mono)" }}>renderFrame(t)</code> draws the
+          exact scene at time <code style={{ fontFamily: "var(--mono)" }}>t</code> (seconds).
+          Use <b>Validate code</b> in the editor to check, or generate the animation from a
+          prompt with an AI key.
         </div>
       )}
 
