@@ -113,6 +113,14 @@ export default function RenderPanel({ source, duration, aspectRatio, quality, ca
           {starting ? "Starting render…" : job?.status === "done" && !outOfSync ? "Render again" : "Render MP4"}
         </button>
       )}
+      {aspectRatio === "16:9" && quality === "720p" && (
+        <div className="notice" style={{ marginTop: 10 }}>
+          <strong>Adobe Stock note:</strong> horizontal video needs <b>1920×1080 minimum</b> —
+          720p is below their acceptance threshold. Switch Quality to <b>1080p</b> for direct
+          stock upload. (Vertical 1080×1920 and square 1080×1080 are already stock-ready.)
+        </div>
+      )}
+
       {source !== "" && !deterministic && !busy && (
         <div className="notice" style={{ marginTop: 10 }}>
           <strong>Live-record mode.</strong> This source has no{" "}
