@@ -29,7 +29,7 @@ app.get("/api/health", async (_req: Request, res: Response) => {
     ffmpeg: ffmpegVersion,
     chromium: isChromiumAvailable(),
     fps: config.fps,
-    durations: [10, 12],
+    durations: [5, 10, 12],
     queue: queueDepth(),
     maxConcurrentJobs: config.maxConcurrentJobs,
     uptimeSeconds: Math.round(process.uptime()),

@@ -1,4 +1,4 @@
-export type Duration = 10 | 12;
+export type Duration = 5 | 10 | 12;
 export type AspectRatio = "16:9" | "9:16" | "1:1";
 export type Quality = "720p" | "1080p";
 

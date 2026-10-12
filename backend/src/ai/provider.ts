@@ -1,4 +1,4 @@
-import { config } from "../config.js";
+import { config, type Duration } from "../config.js";
 import { validatePrompt } from "../util/validation.js";
 
 export interface GenerateResult {
@@ -51,7 +51,7 @@ OUTPUT CONTRACT — follow exactly:
 
 If the user's prompt is vague, invent tasteful details that fit the requested mood and duration.`;
 
-function buildUserPrompt(prompt: string, duration: 10 | 12, aspectRatio: string): string {
+function buildUserPrompt(prompt: string, duration: Duration, aspectRatio: string): string {
   return (
     `Create a ${duration}-second animated scene for a ${aspectRatio} video canvas.\n\n` +
     `User prompt: ${prompt}\n\n` +
@@ -114,7 +114,7 @@ export async function generateAnimation(
   credentialOverrides?: AiCredentialOverrides
 ): Promise<GenerateResult> {
   const prompt = validatePrompt(promptInput);
-  const duration = durationInput === 12 ? 12 : 10;
+  const duration = durationInput === 5 ? 5 : durationInput === 12 ? 12 : 10;
   const aspectRatio = aspectInput === "9:16" || aspectInput === "1:1" ? aspectInput : "16:9";
 
   const creds = resolveCredentials(credentialOverrides);

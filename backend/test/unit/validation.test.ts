@@ -35,8 +35,11 @@ describe("validateRenderSettings", () => {
     expect(validateRenderSettings({ duration: 12, aspectRatio: "1:1", width: 1080, height: 1080 }).quality).toBe("1080p");
   });
 
-  it("rejects invalid durations", () => {
-    for (const duration of [0, 5, 11, 15, "10", null]) {
+  it("accepts 5s draft duration", () => {
+      expect(() => validateRenderSettings({ duration: 5, aspectRatio: "16:9", width: 1280, height: 720, quality: "720p" })).not.toThrow();
+    });
+    it("rejects invalid durations", () => {
+    for (const duration of [0, 11, 15, "10", null]) {
       expect(() => validateRenderSettings({ duration, aspectRatio: "16:9", width: 1280, height: 720 })).toThrow(ValidationError);
     }
   });

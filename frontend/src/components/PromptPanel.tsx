@@ -82,9 +82,9 @@ export default function PromptPanel(p: Props) {
       <div className="field">
         <label>Duration</label>
         <div className="seg">
-          {([10, 12] as Duration[]).map((d) => (
+          {([5, 10, 12] as Duration[]).map((d) => (
             <button key={d} className={p.duration === d ? "active" : ""} onClick={() => p.setDuration(d)}>
-              {d} seconds
+              {d === 5 ? "5 (draft)" : `${d} seconds`}
             </button>
           ))}
         </div>

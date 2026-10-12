@@ -43,6 +43,6 @@ export const RESOLUTIONS: Record<string, Record<string, [number, number]>> = {
   "1:1": { "720p": [720, 720], "1080p": [1080, 1080] },
 };
 
-export const VALID_DURATIONS = [10, 12] as const;
+export const VALID_DURATIONS = [5, 10, 12] as const;
 export type Duration = (typeof VALID_DURATIONS)[number];
 export type AspectRatio = keyof typeof RESOLUTIONS;

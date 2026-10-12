@@ -21,7 +21,7 @@ export function frameTimesFor(duration: number): number[] {
 }
 
 export interface ValidatedRenderSettings {
-  duration: 10 | 12;
+  duration: (typeof VALID_DURATIONS)[number];
   aspectRatio: "16:9" | "9:16" | "1:1";
   width: number;
   height: number;
@@ -34,8 +34,8 @@ export function validateRenderSettings(body: unknown): ValidatedRenderSettings {
   const b = body as Record<string, unknown>;
 
   const duration = b.duration;
-  if (duration !== 10 && duration !== 12) {
-    throw new ValidationError(`duration must be 10 or 12 (seconds), got ${JSON.stringify(duration)}.`);
+  if (duration !== 5 && duration !== 10 && duration !== 12) {
+    throw new ValidationError(`duration must be 5, 10 or 12 (seconds), got ${JSON.stringify(duration)}.`);
   }
   const aspectRatio = b.aspectRatio;
   if (aspectRatio !== "16:9" && aspectRatio !== "9:16" && aspectRatio !== "1:1") {
@@ -97,7 +97,7 @@ export class ValidationError extends Error {
 
 /** Safe filename for the downloadable MP4: prompt-video-<10s|12s>-<WxH>.mp4 */
 export function buildDownloadFilename(duration: number, width: number, height: number): string {
-  const d = duration === 10 || duration === 12 ? duration : 0;
+  const d = duration === 5 || duration === 10 || duration === 12 ? duration : 0;
   const w = Number.isInteger(width) && width > 0 ? width : 0;
   const h = Number.isInteger(height) && height > 0 ? height : 0;
   return `prompt-video-${d}s-${w}x${h}.mp4`;
