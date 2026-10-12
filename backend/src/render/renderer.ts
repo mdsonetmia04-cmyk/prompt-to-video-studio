@@ -130,10 +130,14 @@ export async function runRenderJob(job: Job): Promise<void> {
       checkCancelled(job);
 
       const captureFrame = async (i: number) => {
-        const framePath = path.join(framesDir, `frame${String(i).padStart(4, "0")}.png`);
-        await page.screenshot({ path: framePath, timeout: 30000 }).catch((err) => {
-          throw new Error(`Frame capture failed at frame ${i}: ${(err as Error).message}`);
-        });
+        const framePath = path.join(framesDir, `frame${String(i).padStart(4, "0")}.jpg`);
+        // JPEG (not PNG): Chromium captures it ~2-3x faster and FFmpeg decodes it
+        // faster. Quality 85 is visually transparent once re-encoded to H.264.
+        await page
+          .screenshot({ path: framePath, type: "jpeg", quality: 85, timeout: 30000 })
+          .catch((err) => {
+            throw new Error(`Frame capture failed at frame ${i}: ${(err as Error).message}`);
+          });
       };
       const reportFrame = async (i: number, stage: JobStage) => {
         if (i % 10 === 0 || i === totalFrames - 1) {
@@ -210,7 +214,7 @@ export async function runRenderJob(job: Job): Promise<void> {
 
 function encodeFrames(job: Job, framesDir: string, outPath: string, totalFrames: number): Promise<void> {
   return new Promise((resolve, reject) => {
-    const pattern = path.join(framesDir, "frame%04d.png");
+    const pattern = path.join(framesDir, "frame%04d.jpg");
     const args = [
       "-y",
       "-framerate", "30",
