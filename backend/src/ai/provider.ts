@@ -13,9 +13,9 @@ export class AiNotConfiguredError extends Error {
   code = "AI_NOT_CONFIGURED";
   constructor() {
     super(
-      "AI generation is not configured. Set AI_API_KEY (and optionally AI_API_URL / AI_MODEL) in backend/.env, " +
-        "then restart the backend. Meanwhile you can use the built-in demo animation (GET /api/demo) — " +
-        "preview and MP4 rendering work fully offline with it."
+      "AI generation is not configured. Either set AI_API_KEY (and optionally AI_API_URL / AI_MODEL) in backend/.env " +
+        "and restart the backend, or add your own free provider key in the app's AI Settings (browser key, sent per request only). " +
+        "Meanwhile you can use the built-in demo animation (GET /api/demo) — preview and MP4 rendering work fully offline with it."
     );
     this.name = "AiNotConfiguredError";
   }
@@ -68,29 +68,70 @@ export function extractHtml(raw: string): string {
   return s;
 }
 
+/** Per-request caller credentials (BYOK). The key is used transiently for this
+ *  one request only — never stored, never logged. */
+export interface AiCredentialOverrides {
+  apiKey?: unknown;
+  apiUrl?: unknown;
+  model?: unknown;
+}
+
+interface ResolvedCredentials {
+  apiKey: string;
+  apiUrl: string;
+  model: string;
+  fromBrowser: boolean;
+}
+
+function cleanStr(v: unknown, max: number): string {
+  return typeof v === "string" ? v.trim().slice(0, max) : "";
+}
+
+/** HTTPS-only, bounded provider URL. Falls back to the server default. */
+function cleanApiUrl(v: unknown, fallback: string): string {
+  const u = cleanStr(v, 200);
+  if (/^https:\/\/[A-Za-z0-9.-]+(?::\d+)?(?:\/[A-Za-z0-9._~:/?#@!$&'()*+,;=%-]*)?$/.test(u)) return u;
+  return fallback;
+}
+
+function resolveCredentials(overrides?: AiCredentialOverrides): ResolvedCredentials {
+  const browserKey = cleanStr(overrides?.apiKey, 500);
+  if (browserKey) {
+    return {
+      apiKey: browserKey,
+      apiUrl: cleanApiUrl(overrides?.apiUrl, config.aiApiUrl),
+      model: cleanStr(overrides?.model, 120) || config.aiModel,
+      fromBrowser: true,
+    };
+  }
+  if (!config.aiApiKey) throw new AiNotConfiguredError();
+  return { apiKey: config.aiApiKey, apiUrl: config.aiApiUrl, model: config.aiModel, fromBrowser: false };
+}
+
 export async function generateAnimation(
   promptInput: unknown,
   durationInput: unknown,
-  aspectInput: unknown
+  aspectInput: unknown,
+  credentialOverrides?: AiCredentialOverrides
 ): Promise<GenerateResult> {
   const prompt = validatePrompt(promptInput);
   const duration = durationInput === 12 ? 12 : 10;
   const aspectRatio = aspectInput === "9:16" || aspectInput === "1:1" ? aspectInput : "16:9";
 
-  if (!config.aiApiKey) throw new AiNotConfiguredError();
+  const creds = resolveCredentials(credentialOverrides);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), config.aiTimeoutSeconds * 1000);
   try {
-    const res = await fetch(`${config.aiApiUrl}/chat/completions`, {
+    const res = await fetch(`${creds.apiUrl}/chat/completions`, {
       method: "POST",
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${config.aiApiKey}`,
+        Authorization: `Bearer ${creds.apiKey}`,
       },
       body: JSON.stringify({
-        model: config.aiModel,
+        model: creds.model,
         temperature: 0.7,
         max_tokens: config.aiMaxTokens,
         messages: [
@@ -118,8 +159,10 @@ export async function generateAnimation(
     return {
       source,
       deterministic: /window\s*\.\s*anim|renderFrame/.test(source),
-      model: config.aiModel,
-      note: "Review the generated code in the editor before rendering.",
+      model: creds.model,
+      note: creds.fromBrowser
+        ? "Generated with your browser-provided API key (not stored on the server). Review the code in the editor before rendering."
+        : "Review the generated code in the editor before rendering.",
     };
   } catch (err) {
     if (err instanceof AiProviderError || err instanceof AiNotConfiguredError) throw err;

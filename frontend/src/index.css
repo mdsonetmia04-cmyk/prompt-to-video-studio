@@ -199,3 +199,25 @@ textarea.prompt:focus { outline: none; border-color: var(--accent); box-shadow: 
 .foot code { font-family: var(--mono); color: var(--muted); }
 .kv { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); padding: 3px 0; }
 .kv b { color: var(--text); font-weight: 600; font-family: var(--mono); }
+
+/* ── AI settings modal ─────────────────────────────────── */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.62); display: grid; place-items: center; z-index: 50; padding: 16px; }
+.modal { width: min(560px, 100%); max-height: 90vh; overflow: auto; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.modal-head h3 { margin: 0; font-size: 15px; }
+.modal .muted { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.modal .muted.small { font-size: 11.5px; margin: 2px 0 8px; }
+.modal .muted a { color: var(--accent-strong); }
+.field-label { display: block; font-size: 12px; font-weight: 600; color: var(--text); margin: 12px 0 6px; }
+.text-input { width: 100%; box-sizing: border-box; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 9px 11px; font-size: 13px; font-family: var(--mono); }
+.text-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(47,174,107,.18); }
+.preset-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn.preset { font-size: 12px; }
+.btn.preset.active { background: var(--accent-dim); border-color: rgba(47,174,107,.55); color: var(--accent-strong); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn.danger-ghost { background: transparent; border-color: var(--border); color: #e06c75; }
+.modal-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; }
+.modal-actions .spacer { flex: 1; }
+.topbar .ai-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.topbar .ai-status:hover { border-color: var(--accent); color: var(--text); }
+.topbar .ai-status .dot { width: 7px; height: 7px; }

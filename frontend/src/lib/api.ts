@@ -76,11 +76,21 @@ export const api = {
     fetch(u("/api/demo")).then((r) =>
       handle<{ source: string; meta: { name: string; description: string } }>(r)
     ),
-  generate: (prompt: string, duration: Duration, aspectRatio: AspectRatio) =>
+  generate: (
+    prompt: string,
+    duration: Duration,
+    aspectRatio: AspectRatio,
+    creds?: { apiKey: string; apiUrl: string; model: string } | null
+  ) =>
     fetch(u("/api/generate"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, duration, aspectRatio }),
+      body: JSON.stringify({
+        prompt,
+        duration,
+        aspectRatio,
+        ...(creds ? { apiKey: creds.apiKey, apiUrl: creds.apiUrl, model: creds.model } : {}),
+      }),
     }).then((r) => handle<{ source: string; deterministic: boolean; model: string; note: string }>(r)),
   startRender: (source: string, duration: Duration, aspectRatio: AspectRatio, width: number, height: number) =>
     fetch(u("/api/render"), {

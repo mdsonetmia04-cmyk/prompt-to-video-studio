@@ -3,7 +3,9 @@ import PromptPanel from "./components/PromptPanel";
 import PreviewPanel from "./components/PreviewPanel";
 import RenderPanel from "./components/RenderPanel";
 import EditorPanel from "./components/EditorPanel";
+import AiSettingsModal from "./components/AiSettingsModal";
 import { api, type AspectRatio, type Duration, type Quality } from "./lib/api";
+import { loadAiSettings, type AiBrowserSettings } from "./lib/aiKeys";
 import "./index.css";
 
 interface Health {
@@ -26,6 +28,8 @@ export default function App() {
   const [genError, setGenError] = useState<string | null>(null);
   const [aiConfigured, setAiConfigured] = useState<boolean | null>(null);
   const [health, setHealth] = useState<Health | null>(null);
+  const [browserKey, setBrowserKey] = useState<AiBrowserSettings | null>(() => loadAiSettings());
+  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   useEffect(() => {
     api.aiStatus().then((s) => setAiConfigured(s.aiConfigured)).catch(() => setAiConfigured(false));
@@ -45,14 +49,14 @@ export default function App() {
     setGenerating(true);
     setGenError(null);
     try {
-      const r = await api.generate(prompt, duration, aspectRatio);
+      const r = await api.generate(prompt, duration, aspectRatio, browserKey);
       applySource(r.source);
     } catch (err) {
       const e = err as Error & { status?: number; body?: { message?: string } };
       if (e.status === 503) {
         setGenError(
           (e.body?.message as string) ||
-            "AI generation is not configured. Use the demo animation instead."
+            "AI generation is not configured. Add a free provider key in AI Settings, or use the demo animation."
         );
       } else {
         setGenError(`Generation failed: ${e.message}`);
@@ -60,7 +64,7 @@ export default function App() {
     } finally {
       setGenerating(false);
     }
-  }, [prompt, duration, aspectRatio, applySource]);
+  }, [prompt, duration, aspectRatio, browserKey, applySource]);
 
   const useDemo = useCallback(async () => {
     setGenerating(true);
@@ -85,11 +89,24 @@ export default function App() {
           Prompt to Video Studio
         </div>
         <div className="spacer" />
+        <button
+          className="ai-status"
+          onClick={() => setAiModalOpen(true)}
+          title="AI Settings — use your own free provider key"
+        >
+          <span className={`dot ${browserKey || aiConfigured ? "" : "off"}`} />
+          {browserKey ? "AI: browser key" : aiConfigured ? "AI: server key" : "AI: setup"}
+        </button>
         <span className="health-dot" title={health?.ffmpeg ?? "FFmpeg status unknown"}>
           <span className={`dot ${health?.ffmpeg ? "" : "off"}`} />
           {health?.ffmpeg ? "Renderer ready" : "Checking renderer…"}
         </span>
       </header>
+      <AiSettingsModal
+        open={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        onSaved={setBrowserKey}
+      />
 
       <main className="workspace">
         <section className="col left">
@@ -104,7 +121,7 @@ export default function App() {
             setQuality={setQuality}
             generating={generating}
             genError={genError}
-            aiConfigured={aiConfigured}
+            aiConfigured={aiConfigured || !!browserKey}
             onGenerate={doGenerate}
             onRegenerate={doGenerate}
             onUseDemo={useDemo}
@@ -135,7 +152,7 @@ export default function App() {
           <>
             <code>{health.ffmpeg ? health.ffmpeg.split(" ").slice(0, 3).join(" ") : "ffmpeg: missing"}</code>
             {" · "}chromium: {health.chromium ? "ok" : "missing"}
-            {" · "}AI: {health.aiConfigured ? "configured" : "demo mode"}
+            {" · "}AI: {browserKey ? "browser key" : health.aiConfigured ? "server key" : "demo mode"}
           </>
         )}
       </footer>

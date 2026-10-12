@@ -38,9 +38,9 @@ export default function PromptPanel(p: Props) {
 
       {p.aiConfigured === false && (
         <div className="notice warn">
-          <strong>Demo mode.</strong> No AI key is configured on the server, so generation is
-          unavailable. Use the built-in demo animation — preview and MP4 rendering work fully
-          offline.
+          <strong>Demo mode.</strong> No AI key on the server. Add your own free key
+          (Groq, OpenRouter, Gemini…) in <b>AI Settings</b> ↑, or use the built-in demo
+          animation — preview and MP4 rendering work fully offline.
         </div>
       )}
 

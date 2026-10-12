@@ -17,8 +17,10 @@ generateRouter.get("/demo", (_req: Request, res: Response) => {
 
 generateRouter.post("/generate", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { prompt, duration, aspectRatio } = req.body ?? {};
-    const result = await generateAnimation(prompt, duration, aspectRatio);
+    // BYOK: the caller may supply their own provider credentials per request.
+    // Used transiently for this request only — never stored or logged.
+    const { prompt, duration, aspectRatio, apiKey, apiUrl, model } = req.body ?? {};
+    const result = await generateAnimation(prompt, duration, aspectRatio, { apiKey, apiUrl, model });
     res.json(result);
   } catch (err) {
     next(err);
