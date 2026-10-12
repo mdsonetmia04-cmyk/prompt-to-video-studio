@@ -1,0 +1,133 @@
+import { config } from "../config.js";
+import { validatePrompt } from "../util/validation.js";
+
+export interface GenerateResult {
+  source: string;
+  deterministic: boolean;
+  model: string;
+  note: string;
+}
+
+export class AiNotConfiguredError extends Error {
+  status = 503;
+  code = "AI_NOT_CONFIGURED";
+  constructor() {
+    super(
+      "AI generation is not configured. Set AI_API_KEY (and optionally AI_API_URL / AI_MODEL) in backend/.env, " +
+        "then restart the backend. Meanwhile you can use the built-in demo animation (GET /api/demo) — " +
+        "preview and MP4 rendering work fully offline with it."
+    );
+    this.name = "AiNotConfiguredError";
+  }
+}
+
+export class AiProviderError extends Error {
+  status = 502;
+  code = "AI_PROVIDER_ERROR";
+  constructor(message: string) {
+    super(message);
+    this.name = "AiProviderError";
+  }
+}
+
+const SYSTEM_PROMPT = `You are an expert creative developer who writes self-contained animated HTML scenes for a deterministic video renderer.
+
+OUTPUT CONTRACT — follow exactly:
+1. Output ONLY a single complete HTML document. No markdown fences, no explanations, no commentary — the raw HTML only, starting with <!DOCTYPE html>.
+2. The document must be FULLY SELF-CONTAINED: no external URLs, no CDN scripts, no webfonts, no images, no network requests of any kind. Use only inline <style> and <script>. System font stacks only.
+3. The page body must fill the viewport (html, body { margin:0; width:100vw; height:100vh; overflow:hidden }) and the animation must adapt to ANY viewport size/aspect ratio via window.innerWidth / innerHeight (recompute layout in init and on resize).
+4. Expose a DETERMINISTIC animation interface on window:
+     window.anim = {
+       init() { /* build scene, reset all state to t=0 */ },
+       renderFrame(t) { /* draw the exact state at time t (seconds, float) */ },
+       dispose() { /* release listeners/timers */ }
+     };
+   - renderFrame(t) must be a PURE function of t: calling renderFrame(2.5) twice must produce pixel-identical output. Do NOT use Math.random() (use a seeded PRNG with a fixed seed), Date.now(), performance.now(), setTimeout, setInterval, or requestAnimationFrame inside the scene logic.
+   - Prefer <canvas> 2D rendering driven entirely by t. CSS keyframe animations are allowed only for decoration that does not affect the main timeline.
+   - init() must be idempotent (safe to call twice) and dispose() must clean up.
+5. The scene is a short cinematic loop-free clip of the requested duration. Design a clear beginning, middle, and polished END FRAME that holds for the final ~2 seconds (the end frame is what viewers remember).
+6. Keep total output under ~60 KB. Prefer procedural drawing (particles, gradients, shapes, typography) over verbose markup.
+7. Visual quality bar: premium motion-graphics look — eased motion (easeInOutCubic etc.), layered depth, subtle grain/vignette allowed, restrained color palette, crisp typography with letter-spacing. Avoid default-looking shapes and linear motion.
+8. Never include <script src=...>, <link rel=stylesheet href=...>, @import, fetch(), XMLHttpRequest, WebSocket, or eval of remote code. No prompt()/alert()/confirm().
+
+If the user's prompt is vague, invent tasteful details that fit the requested mood and duration.`;
+
+function buildUserPrompt(prompt: string, duration: 10 | 12, aspectRatio: string): string {
+  return (
+    `Create a ${duration}-second animated scene for a ${aspectRatio} video canvas.\n\n` +
+    `User prompt: ${prompt}\n\n` +
+    `Remember: output ONLY the raw HTML document implementing window.anim = { init(), renderFrame(t), dispose() } as specified.`
+  );
+}
+
+/** Strip accidental markdown fences so we always store raw HTML. */
+export function extractHtml(raw: string): string {
+  let s = raw.trim();
+  const fence = s.match(/^```(?:html)?\s*\n([\s\S]*?)\n```\s*$/);
+  if (fence) s = fence[1].trim();
+  return s;
+}
+
+export async function generateAnimation(
+  promptInput: unknown,
+  durationInput: unknown,
+  aspectInput: unknown
+): Promise<GenerateResult> {
+  const prompt = validatePrompt(promptInput);
+  const duration = durationInput === 12 ? 12 : 10;
+  const aspectRatio = aspectInput === "9:16" || aspectInput === "1:1" ? aspectInput : "16:9";
+
+  if (!config.aiApiKey) throw new AiNotConfiguredError();
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), config.aiTimeoutSeconds * 1000);
+  try {
+    const res = await fetch(`${config.aiApiUrl}/chat/completions`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.aiApiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.aiModel,
+        temperature: 0.7,
+        max_tokens: config.aiMaxTokens,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: buildUserPrompt(prompt, duration, aspectRatio) },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new AiProviderError(`AI provider returned HTTP ${res.status}: ${text.slice(0, 300)}`);
+    }
+    const data = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+      error?: { message?: string };
+    };
+    if (data.error?.message) throw new AiProviderError(`AI provider error: ${data.error.message.slice(0, 300)}`);
+    const raw = data.choices?.[0]?.message?.content ?? "";
+    const source = extractHtml(raw);
+    if (!source.toLowerCase().includes("<html")) {
+      throw new AiProviderError("AI provider did not return a valid HTML document.");
+    }
+    const bytes = Buffer.byteLength(source, "utf8");
+    if (bytes > 2 * 1024 * 1024) throw new AiProviderError("Generated source exceeds the 2 MB limit.");
+    return {
+      source,
+      deterministic: /window\s*\.\s*anim|renderFrame/.test(source),
+      model: config.aiModel,
+      note: "Review the generated code in the editor before rendering.",
+    };
+  } catch (err) {
+    if (err instanceof AiProviderError || err instanceof AiNotConfiguredError) throw err;
+    if ((err as Error).name === "AbortError") {
+      throw new AiProviderError(`AI request timed out after ${config.aiTimeoutSeconds}s.`);
+    }
+    throw new AiProviderError(`AI request failed: ${(err as Error).message}`);
+  } finally {
+    clearTimeout(timer);
+  }
+}
