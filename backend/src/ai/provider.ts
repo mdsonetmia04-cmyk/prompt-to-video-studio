@@ -14,8 +14,7 @@ export class AiNotConfiguredError extends Error {
   constructor() {
     super(
       "AI generation is not configured. Either set AI_API_KEY (and optionally AI_API_URL / AI_MODEL) in backend/.env " +
-        "and restart the backend, or add your own free provider key in the app's AI Settings (browser key, sent per request only). " +
-        "Meanwhile you can use the built-in demo animation (GET /api/demo) — preview and MP4 rendering work fully offline with it."
+        "and restart the backend, or add your own free provider key in the app's AI Settings (browser key, sent per request only)."
     );
     this.name = "AiNotConfiguredError";
   }

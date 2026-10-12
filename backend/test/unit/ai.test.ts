@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { extractHtml, generateAnimation, AiNotConfiguredError } from "../../src/ai/provider.js";
-import { DEMO_SOURCE, DEMO_META } from "../../src/ai/demoAnimation.js";
+import { SAMPLE_SOURCE, SAMPLE_META } from "../fixtures/sampleAnimation.js";
 
 describe("AI provider adapter", () => {
   it("strips markdown fences to raw HTML", () => {
@@ -28,15 +28,15 @@ describe("AI provider adapter", () => {
   });
 });
 
-describe("demo animation", () => {
+describe("sample animation fixture", () => {
   it("is a self-contained document exposing the deterministic interface", () => {
-    expect(DEMO_SOURCE).toContain("<!DOCTYPE html>");
-    expect(DEMO_SOURCE).toContain("window.anim");
-    expect(DEMO_SOURCE).toContain("renderFrame");
-    expect(DEMO_SOURCE).toContain("init");
-    expect(DEMO_SOURCE).toContain("dispose");
+    expect(SAMPLE_SOURCE).toContain("<!DOCTYPE html>");
+    expect(SAMPLE_SOURCE).toContain("window.anim");
+    expect(SAMPLE_SOURCE).toContain("renderFrame");
+    expect(SAMPLE_SOURCE).toContain("init");
+    expect(SAMPLE_SOURCE).toContain("dispose");
     // No external resources allowed:
-    expect(DEMO_SOURCE).not.toMatch(/src="http|<link[^>]+href="http|@import|fetch\(/);
-    expect(DEMO_META.duration).toBe(12);
+    expect(SAMPLE_SOURCE).not.toMatch(/src="http|<link[^>]+href="http|@import|fetch\(/);
+    expect(SAMPLE_META.duration).toBe(12);
   });
 });

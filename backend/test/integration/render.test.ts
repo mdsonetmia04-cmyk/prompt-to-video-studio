@@ -4,7 +4,7 @@ import { rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { config } from "../../src/config.js";
-import { DEMO_SOURCE } from "../../src/ai/demoAnimation.js";
+import { SAMPLE_SOURCE } from "../fixtures/sampleAnimation.js";
 import { createJob, getJob, requestCancel } from "../../src/render/jobManager.js";
 import { closeSharedBrowser } from "../../src/render/renderer.js";
 import { validateRenderSettings } from "../../src/util/validation.js";
@@ -49,7 +49,7 @@ async function waitForTerminal(id: string, timeoutMs: number) {
 
 describe("render pipeline integration", () => {
   it(
-    "renders the demo animation to a valid 10s 720x720 H.264 MP4",
+    "renders the sample animation to a valid 10s 720x720 H.264 MP4",
     { timeout: 600000 },
     async () => {
       const settings = validateRenderSettings({
@@ -58,7 +58,7 @@ describe("render pipeline integration", () => {
         width: 720,
         height: 720,
       });
-      const job = await createJob(DEMO_SOURCE, settings);
+      const job = await createJob(SAMPLE_SOURCE, settings);
       createdDirs.push(job.dir);
       expect(job.status).toBe("queued");
 
@@ -91,7 +91,7 @@ describe("render pipeline integration", () => {
         width: 720,
         height: 720,
       });
-      const job = await createJob(DEMO_SOURCE, settings);
+      const job = await createJob(SAMPLE_SOURCE, settings);
       createdDirs.push(job.dir);
 
       // Wait until it is actually rendering frames, then cancel.

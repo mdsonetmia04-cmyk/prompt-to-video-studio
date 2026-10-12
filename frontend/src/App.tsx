@@ -43,7 +43,7 @@ export default function App() {
 
   const doGenerate = useCallback(async () => {
     if (!prompt.trim()) {
-      setGenError("Enter a prompt first, or use the demo animation.");
+      setGenError("Enter a prompt first.");
       return;
     }
     setGenerating(true);
@@ -56,7 +56,7 @@ export default function App() {
       if (e.status === 503) {
         setGenError(
           (e.body?.message as string) ||
-            "AI generation is not configured. Add a free provider key in AI Settings, or use the demo animation."
+            "AI generation is not configured. Add a free provider key in AI Settings."
         );
       } else {
         setGenError(`Generation failed: ${e.message}`);
@@ -65,19 +65,6 @@ export default function App() {
       setGenerating(false);
     }
   }, [prompt, duration, aspectRatio, browserKey, applySource]);
-
-  const useDemo = useCallback(async () => {
-    setGenerating(true);
-    setGenError(null);
-    try {
-      const r = await api.demo();
-      applySource(r.source);
-    } catch (err) {
-      setGenError(`Could not load demo: ${(err as Error).message}`);
-    } finally {
-      setGenerating(false);
-    }
-  }, [applySource]);
 
   const canRender = source !== "" && /renderFrame|window\s*\.\s*anim/.test(source);
 
@@ -124,7 +111,6 @@ export default function App() {
             aiConfigured={aiConfigured || !!browserKey}
             onGenerate={doGenerate}
             onRegenerate={doGenerate}
-            onUseDemo={useDemo}
             hasSource={source !== ""}
           />
         </section>
@@ -152,7 +138,7 @@ export default function App() {
           <>
             <code>{health.ffmpeg ? health.ffmpeg.split(" ").slice(0, 3).join(" ") : "ffmpeg: missing"}</code>
             {" · "}chromium: {health.chromium ? "ok" : "missing"}
-            {" · "}AI: {browserKey ? "browser key" : health.aiConfigured ? "server key" : "demo mode"}
+            {" · "}AI: {browserKey ? "browser key" : health.aiConfigured ? "server key" : "no key — add one in AI Settings"}
           </>
         )}
       </footer>

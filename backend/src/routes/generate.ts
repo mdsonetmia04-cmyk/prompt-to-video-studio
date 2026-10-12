@@ -4,16 +4,10 @@ import {
   AiNotConfiguredError,
   AiProviderError,
 } from "../ai/provider.js";
-import { DEMO_SOURCE, DEMO_META } from "../ai/demoAnimation.js";
 import { ValidationError } from "../util/validation.js";
 import { config } from "../config.js";
 
 export const generateRouter = Router();
-
-/** Built-in demo animation so preview + rendering work with no AI key. */
-generateRouter.get("/demo", (_req: Request, res: Response) => {
-  res.json({ source: DEMO_SOURCE, meta: DEMO_META, deterministic: true });
-});
 
 generateRouter.post("/generate", async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -27,14 +21,12 @@ generateRouter.post("/generate", async (req: Request, res: Response, next: NextF
   }
 });
 
-/** Friendly 503 body for the demo-mode path the frontend can render. */
+/** Friendly 503 body when no AI key is available (server or browser). */
 export function aiSetupHint() {
   return {
     error: "AI_NOT_CONFIGURED",
     message:
-      "AI generation is not configured on this server. Set AI_API_KEY in backend/.env (see .env.example) and restart.",
-    demoAvailable: true,
-    demoEndpoint: "/api/demo",
+      "AI generation needs an API key. Add your own free key (Groq, OpenRouter, Gemini…) in the app's AI Settings, or set AI_API_KEY in backend/.env and restart.",
     docs: "README.md → Configuration",
     aiConfigured: config.aiApiKey.length > 0,
   };

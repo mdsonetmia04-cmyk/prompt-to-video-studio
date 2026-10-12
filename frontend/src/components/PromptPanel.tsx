@@ -14,7 +14,6 @@ interface Props {
   genError: string | null;
   aiConfigured: boolean | null;
   onGenerate: () => void;
-  onUseDemo: () => void;
   onRegenerate: () => void;
   hasSource: boolean;
 }
@@ -38,9 +37,9 @@ export default function PromptPanel(p: Props) {
 
       {p.aiConfigured === false && (
         <div className="notice warn">
-          <strong>Demo mode.</strong> No AI key on the server. Add your own free key
-          (Groq, OpenRouter, Gemini…) in <b>AI Settings</b> ↑, or use the built-in demo
-          animation — preview and MP4 rendering work fully offline.
+          <strong>No AI key.</strong> Add your own free key
+          (Groq, OpenRouter, Gemini…) in <b>AI Settings</b> ↑ to generate animations from prompts.
+          You can also paste or upload HTML directly in the editor below.
         </div>
       )}
 
@@ -52,11 +51,8 @@ export default function PromptPanel(p: Props) {
       </button>
 
       <div style={{ display: "flex", gap: 8 }}>
-        <button className="btn small" style={{ flex: 1 }} disabled={p.generating || !p.hasSource} onClick={p.onRegenerate}>
+        <button className="btn small block" disabled={p.generating || !p.hasSource} onClick={p.onRegenerate}>
           Regenerate
-        </button>
-        <button className="btn small" style={{ flex: 1 }} disabled={p.generating} onClick={p.onUseDemo}>
-          Use demo animation
         </button>
       </div>
 

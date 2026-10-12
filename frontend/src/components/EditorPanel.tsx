@@ -6,7 +6,7 @@ import { validateAnimationHtml, type ValidationResult } from "../lib/validate";
 
 interface Props {
   source: string; // currently applied source
-  lastGenerated: string | null; // last AI/demo output, for restore
+  lastGenerated: string | null; // last AI output, for restore
   onApply: (next: string) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }

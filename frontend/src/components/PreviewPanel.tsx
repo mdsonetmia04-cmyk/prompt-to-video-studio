@@ -134,7 +134,7 @@ export default function PreviewPanel({ source, duration, aspectRatio }: Props) {
             onLoad={onIframeLoad}
           />
         ) : (
-          <div className="preview-loading">No animation yet — generate one or load the demo.</div>
+          <div className="preview-loading">No animation yet — generate one from a prompt, or paste/upload HTML in the editor.</div>
         )}
         {!ready && source && (
           <div className="preview-loading">

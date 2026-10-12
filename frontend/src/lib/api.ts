@@ -70,11 +70,7 @@ export const api = {
   health: () => fetch(u("/api/health")).then((r) => handle<Record<string, unknown>>(r)),
   aiStatus: () =>
     fetch(u("/api/ai-status")).then((r) =>
-      handle<{ aiConfigured: boolean; error: string; message: string; demoAvailable: boolean }>(r)
-    ),
-  demo: () =>
-    fetch(u("/api/demo")).then((r) =>
-      handle<{ source: string; meta: { name: string; description: string } }>(r)
+      handle<{ aiConfigured: boolean; error: string; message: string }>(r)
     ),
   generate: (
     prompt: string,
