@@ -50,8 +50,11 @@ app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (e.code === "AI_NOT_CONFIGURED") {
     return res.status(503).json(aiSetupHint());
   }
+  // Mask only truly unknown server failures (500). Known error statuses
+  // (400 validation, 401/429/502 provider errors, 503 not-configured) carry
+  // actionable messages the user needs to see.
   const safeMessage =
-    status >= 500 ? "Internal server error. Check the backend logs for details." : e.message;
+    status === 500 ? "Internal server error. Check the backend logs for details." : e.message;
   res.status(status).json({ error: safeMessage, code: e.code });
 });
 
