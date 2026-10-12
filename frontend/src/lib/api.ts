@@ -35,11 +35,19 @@ export interface RenderJobStatus {
   downloadUrl: string | null;
 }
 
+const BACKEND_MISSING_MSG =
+  "Render backend is not connected. This site is the frontend only — start the backend (see DEPLOY.md) and set VITE_API_URL in Vercel to its public URL, then redeploy.";
+
 async function handle<T>(res: Response): Promise<T> {
   const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
+    // Same-origin /api on a static host (Vercel) answers 404/405 when no
+    // backend is wired up. Explain instead of showing a raw status code.
+    const noBackend = !API_BASE && (res.status === 404 || res.status === 405);
     const err = new Error(
-      (data.error as string) || (data.message as string) || `Request failed (${res.status})`
+      noBackend
+        ? BACKEND_MISSING_MSG
+        : (data.error as string) || (data.message as string) || `Request failed (${res.status})`
     ) as Error & { status: number; body: unknown };
     err.status = res.status;
     err.body = data;
