@@ -9,7 +9,7 @@ services:
     name: prompt-to-video-studio-backend
     runtime: docker
     dockerContext: ./backend
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./backend/Dockerfile # repo-root-relative (Render requirement)
     plan: free
     healthCheckPath: /api/health
     # Render injects PORT automatically — do NOT set it here.
