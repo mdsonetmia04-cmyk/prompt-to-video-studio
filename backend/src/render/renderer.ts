@@ -5,7 +5,7 @@ import path from "node:path";
 import { chromium, type Browser } from "playwright";
 import { config } from "../config.js";
 import { frameCountFor } from "../util/validation.js";
-import { setJobProgress, persistJobNow, type Job } from "./jobManager.js";
+import { setJobProgress, persistJobNow, type Job, type JobStage } from "./jobManager.js";
 
 export class RenderCancelledError extends Error {
   constructor(message = "Render job was cancelled.") {
@@ -50,9 +50,12 @@ function checkCancelled(job: Job): void {
 }
 
 /**
- * Full deterministic render pipeline:
+ * Render pipeline (two capture modes):
  *  1. load source in an isolated Chromium context (all network blocked)
- *  2. init() at t=0, then screenshot renderFrame(i/30) for every frame
+ *  2. "seek" mode (window.anim.renderFrame exists): init() at t=0, then screenshot
+ *     renderFrame(i/30) for every frame — deterministic and frame-perfect.
+ *     "live" mode (any other HTML): let the page run on wall-clock time and capture
+ *     frames paced across the duration — a genuine recording, timing approximate.
  *  3. encode PNG sequence to H.264 MP4 with FFmpeg
  *  4. validate with FFprobe (codec, dims, fps, duration, frame count)
  */
@@ -99,53 +102,76 @@ export async function runRenderJob(job: Job): Promise<void> {
         throw new Error(`Animation page failed to load: ${(err as Error).message}`);
       });
 
-      const hasAnim = await page.evaluate(() => {
-        const w = window as unknown as { anim?: unknown };
-        return !!w.anim;
+      // Two capture modes:
+      //  - "seek" (deterministic): source exposes window.anim.renderFrame(t) — every
+      //    frame is drawn at its exact timestamp. Frame-perfect and reproducible.
+      //  - "live" (wall-clock): any other HTML (rAF loops, CSS keyframes, SMIL…).
+      //    The page runs on its own clock while we capture frames paced across the
+      //    duration — a genuine recording of the animation, but timing is approximate.
+      const mode = await page.evaluate(() => {
+        const w = window as unknown as { anim?: { renderFrame?: unknown } };
+        return typeof w.anim?.renderFrame === "function" ? ("seek" as const) : ("live" as const);
       });
-      if (!hasAnim) {
-        throw new Error(
-          "Animation initialization failed: the source does not expose window.anim = { init(), renderFrame(t), dispose() }. " +
-            "Wall-clock fallback animations cannot be rendered deterministically."
-        );
-      }
+      job.stage = mode === "seek" ? "Rendering frames" : "Recording live animation";
 
       await page
         .evaluate(() => {
           const w = window as unknown as {
             anim: { init?: () => void; renderFrame?: (t: number) => void };
           };
-          w.anim.init?.();
+          w.anim?.init?.();
         })
         .catch((err) => {
           throw new Error(`Animation init() failed: ${(err as Error).message}`);
         });
 
-      // Let first paint settle (fonts/layout), then drive the controlled clock.
+      // Let first paint settle (fonts/layout), then capture.
       await page.waitForTimeout(400);
       checkCancelled(job);
-      job.stage = "Rendering frames";
 
-      for (let i = 0; i < totalFrames; i++) {
-        checkCancelled(job);
-        const t = i / fps;
-        await page
-          .evaluate((tt: number) => {
-            const w = window as unknown as { anim: { renderFrame: (t: number) => void } };
-            w.anim.renderFrame(tt);
-          }, t)
-          .catch((err) => {
-            throw new Error(`renderFrame(${(i / fps).toFixed(3)}) failed: ${(err as Error).message}`);
-          });
+      const captureFrame = async (i: number) => {
         const framePath = path.join(framesDir, `frame${String(i).padStart(4, "0")}.png`);
         await page.screenshot({ path: framePath, timeout: 30000 }).catch((err) => {
           throw new Error(`Frame capture failed at frame ${i}: ${(err as Error).message}`);
         });
+      };
+      const reportFrame = async (i: number, stage: JobStage) => {
         if (i % 10 === 0 || i === totalFrames - 1) {
           setJobProgress(job, "rendering", i + 1);
+          job.stage = stage; // setJobProgress maps status->stage; keep our mode label
           await persistJobNow(job);
         } else {
           job.framesDone = i + 1;
+        }
+      };
+
+      if (mode === "seek") {
+        for (let i = 0; i < totalFrames; i++) {
+          checkCancelled(job);
+          const t = i / fps;
+          await page
+            .evaluate((tt: number) => {
+              const w = window as unknown as { anim: { renderFrame: (t: number) => void } };
+              w.anim.renderFrame(tt);
+            }, t)
+            .catch((err) => {
+              throw new Error(`renderFrame(${(i / fps).toFixed(3)}) failed: ${(err as Error).message}`);
+            });
+          await captureFrame(i);
+          await reportFrame(i, "Rendering frames");
+        }
+      } else {
+        // Live-record: pace captures evenly across the duration on wall-clock time.
+        // If a screenshot is slow we catch up instead of drifting (never skip waiting
+        // ahead — a late frame just shifts the remaining schedule).
+        const startMs = Date.now();
+        for (let i = 0; i < totalFrames; i++) {
+          checkCancelled(job);
+          const targetMs = (i / totalFrames) * duration * 1000;
+          const elapsedMs = Date.now() - startMs;
+          if (targetMs > elapsedMs) await page.waitForTimeout(targetMs - elapsedMs);
+          await captureFrame(i);
+          await reportFrame(i, "Recording live animation");
         }
       }
 

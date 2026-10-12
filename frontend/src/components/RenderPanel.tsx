@@ -14,8 +14,10 @@ interface Props {
   duration: Duration;
   aspectRatio: AspectRatio;
   quality: Quality;
-  canRender: boolean; // false when source lacks a deterministic interface
+  canRender: boolean; // any non-empty source can render
 }
+
+const HAS_RENDER_FRAME = /window\s*\.\s*anim[\s\S]{0,400}renderFrame|renderFrame\s*\(\s*[a-zA-Z_$]/;
 
 const TERMINAL = new Set(["done", "failed", "cancelled"]);
 
@@ -29,6 +31,8 @@ export default function RenderPanel({ source, duration, aspectRatio, quality, ca
 
   const outOfSync = renderedHash !== null && hashSource(source) !== renderedHash;
   const busy = job !== null && !TERMINAL.has(job.status);
+  // Capture mode the backend will use for the current source.
+  const deterministic = HAS_RENDER_FRAME.test(source);
 
   const start = async () => {
     setStarting(true);
@@ -74,6 +78,11 @@ export default function RenderPanel({ source, duration, aspectRatio, quality, ca
     <div className="render-card">
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <h2 className="section-title">Render MP4</h2>
+        {source && (
+          deterministic
+            ? <span className="badge" title="Every frame is drawn at its exact timestamp. Frame-perfect.">Deterministic</span>
+            : <span className="badge warn" title="The page runs on wall-clock time while frames are captured. Genuine recording, timing approximate.">Live record</span>
+        )}
       </div>
 
       <div className="render-meta">
@@ -98,25 +107,19 @@ export default function RenderPanel({ source, duration, aspectRatio, quality, ca
           className="btn primary block"
           disabled={starting || !source || !canRender}
           onClick={start}
-          title={!canRender ? "Source must expose window.anim.renderFrame for deterministic rendering" : undefined}
+          title={!source ? "Add source code first" : undefined}
         >
           {starting && <span className="spinner" />}
           {starting ? "Starting render…" : job?.status === "done" && !outOfSync ? "Render again" : "Render MP4"}
         </button>
       )}
-      {!canRender && source !== "" && (
-        <div className="notice warn" style={{ marginTop: 10 }}>
-          Rendering is disabled: the current source has no deterministic{" "}
-          <code style={{ fontFamily: "var(--mono)" }}>renderFrame</code> interface. The
-          renderer seeks to exact timestamps (frame 150 = t 5.0s), so your animation must
-          expose{" "}
-          <code style={{ fontFamily: "var(--mono)" }}>
-            window.anim = {"{ init(), renderFrame(t), dispose() }"}
-          </code>{" "}
-          where <code style={{ fontFamily: "var(--mono)" }}>renderFrame(t)</code> draws the
-          exact scene at time <code style={{ fontFamily: "var(--mono)" }}>t</code> (seconds).
-          Use <b>Validate code</b> in the editor to check, or generate the animation from a
-          prompt with an AI key.
+      {source !== "" && !deterministic && !busy && (
+        <div className="notice" style={{ marginTop: 10 }}>
+          <strong>Live-record mode.</strong> This source has no{" "}
+          <code style={{ fontFamily: "var(--mono)" }}>renderFrame</code> interface, so the
+          renderer will play the page in real time and record it — like a screen recording.
+          Timing is approximate; for frame-perfect output use{" "}
+          <code style={{ fontFamily: "var(--mono)" }}>window.anim.renderFrame(t)</code>.
         </div>
       )}
 

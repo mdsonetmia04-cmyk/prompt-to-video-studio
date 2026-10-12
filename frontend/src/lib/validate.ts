@@ -27,14 +27,16 @@ export function validateAnimationHtml(source: string): ValidationResult {
   if (!lower.includes("<html")) errors.push("Missing <html> tag — paste a complete HTML document.");
   if (!/<body[\s>]/.test(lower)) warnings.push("No <body> tag found — the preview driver may not attach correctly.");
 
-  // Deterministic animation interface (what the renderer drives).
+  // Deterministic animation interface (what the seek-mode renderer drives).
+  // Sources WITHOUT it still render — the backend records the page live on
+  // wall-clock time instead — so this is a warning, not an error.
   const hasAnim = /window\s*\.\s*anim/.test(s);
-  const hasInit = /init\s*\(\s*\)/.test(s);
   const hasRenderFrame = /renderFrame\s*\(\s*[a-zA-Z_$][\w$]*\s*\)/.test(s);
+  const hasInit = /init\s*\(\s*\)/.test(s);
   const hasDispose = /dispose\s*\(\s*\)/.test(s);
   if (!hasAnim || !hasRenderFrame) {
-    errors.push(
-      "No deterministic animation interface found. The renderer drives window.anim = { init(), renderFrame(t), dispose() } — renderFrame(t) must draw the exact state at time t."
+    warnings.push(
+      "No deterministic animation interface (window.anim.renderFrame) — the renderer will record the page live instead of frame-seeking. Timing will be approximate; for frame-perfect output expose window.anim = { init(), renderFrame(t), dispose() }."
     );
   } else {
     info.push("Deterministic interface detected (window.anim.renderFrame).");

@@ -66,7 +66,9 @@ export default function App() {
     }
   }, [prompt, duration, aspectRatio, browserKey, applySource]);
 
-  const canRender = source !== "" && /renderFrame|window\s*\.\s*anim/.test(source);
+  // Any non-empty source can render: renderFrame sources use deterministic seek
+  // mode, all other HTML is recorded live on wall-clock time.
+  const canRender = source !== "";
 
   return (
     <div className="app">

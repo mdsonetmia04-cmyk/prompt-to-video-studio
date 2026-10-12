@@ -20,6 +20,7 @@ export type JobStage =
   | "Preparing animation"
   | "Initializing browser"
   | "Rendering frames"
+  | "Recording live animation"
   | "Encoding MP4"
   | "Validating output"
   | "Ready to download";

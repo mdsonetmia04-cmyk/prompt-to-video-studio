@@ -122,17 +122,26 @@ export default function PreviewPanel({ source, duration, aspectRatio }: Props) {
         {hasAnim === false && <span className="badge warn">Wall-clock fallback</span>}
       </div>
 
-      <div className="preview-shell" style={{ aspectRatio: ASPECT_CSS[aspectRatio], maxHeight: "52vh" }}>
+      <div className="preview-shell" style={{ aspectRatio: "16 / 9", maxHeight: "52vh", background: "#000" }}>
         {source ? (
-          <iframe
-            key={doc.slice(0, 64) + duration}
-            ref={iframeRef}
-            title="animation preview"
-            className="preview-frame"
-            sandbox="allow-scripts"
-            srcDoc={doc}
-            onLoad={onIframeLoad}
-          />
+          <div
+            style={{
+              aspectRatio: ASPECT_CSS[aspectRatio],
+              height: "100%",
+              margin: "0 auto",
+              position: "relative",
+            }}
+          >
+            <iframe
+              key={doc.slice(0, 64) + duration}
+              ref={iframeRef}
+              title="animation preview"
+              className="preview-frame"
+              sandbox="allow-scripts"
+              srcDoc={doc}
+              onLoad={onIframeLoad}
+            />
+          </div>
         ) : (
           <div className="preview-loading">No animation yet — generate one from a prompt, or paste/upload HTML in the editor.</div>
         )}
@@ -146,7 +155,7 @@ export default function PreviewPanel({ source, duration, aspectRatio }: Props) {
       {hasAnim === false && (
         <div className="notice warn">
           This source does not expose <code style={{ fontFamily: "var(--mono)" }}>window.anim.renderFrame</code>,
-          so the preview plays on wall-clock time and cannot be frame-rendered deterministically.
+          so the preview plays on wall-clock time. It can still be rendered — the backend will record it live.
         </div>
       )}
 
