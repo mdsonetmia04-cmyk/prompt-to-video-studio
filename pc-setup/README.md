@@ -30,6 +30,12 @@ and redeploy when it does.
 
 ## Optional: AI prompt generation
 
-Edit `backend/.env` and set `AI_API_KEY` (plus `AI_API_URL` / `AI_MODEL` for
-Groq, OpenRouter `:free`, or Google AI Studio). Without a key the app runs in
-demo mode: preview + real MP4 rendering still work.
+Without a key, AI prompt generation is disabled — add your own free provider key
+(Groq, OpenRouter, Gemini…) in the app's **AI Settings** (browser key, never stored
+on the server), or set `AI_API_KEY` in `backend/.env`. Pasting/uploading HTML and
+rendering MP4 work without any key.
+
+## Switching back to the Render.com backend
+
+Set `VITE_API_URL` back to `https://prompt-to-video-studio-backend-mt7k.onrender.com`
+in Vercel and redeploy.
