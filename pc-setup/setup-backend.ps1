@@ -72,7 +72,7 @@ Set-Location (Join-Path $workDir "backend")
 
 Write-Host ""
 Write-Host "=== Backend + app are starting on http://localhost:8787 ===" -ForegroundColor Green
-Write-Host "Open http://localhost:8787 in your browser — the full studio runs there." -ForegroundColor Green
+Write-Host "Open http://localhost:8787 in your browser - the full studio runs there." -ForegroundColor Green
 Write-Host "Check: http://localhost:8787/api/health  (expect status ok)"
 Write-Host "No tunnel or Vercel changes needed for local use. Keep THIS window open."
 Write-Host "(The start-tunnel.ps1 + Vercel VITE_API_URL route is still available as a backup.)"
