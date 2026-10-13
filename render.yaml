@@ -24,5 +24,9 @@ services:
         value: llama-3.3-70b-versatile # ← model matching the endpoint above
       - key: JOB_TTL_MINUTES
         value: "60"
+      - key: MAX_CONCURRENT_JOBS
+        value: "1" # free tier has 512 MB RAM — one Chromium render at a time
+      - key: RENDER_TIMEOUT_MINUTES
+        value: "15" # throttled CPU needs headroom for 10s/720p (300 frames)
       - key: AI_API_KEY
         sync: false # set the real key in the Render dashboard, never in this file
