@@ -1,5 +1,7 @@
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
+import path from "node:path";
+import { existsSync } from "node:fs";
 import { execFile } from "node:child_process";
 import { config } from "./config.js";
 import { generateRouter, aiSetupHint } from "./routes/generate.js";
@@ -40,6 +42,23 @@ app.get("/api/health", async (_req: Request, res: Response) => {
 app.get("/api/ai-status", (_req: Request, res: Response) => {
   res.json(aiSetupHint());
 });
+
+// ── Optional all-in-one mode: serve the built frontend from the backend ─────
+// When frontend/dist exists (local PC setup), the full app is available at
+// http://localhost:<port> with same-origin /api — no tunnel, no CORS, no Vercel
+// env juggling needed. The Render Docker image has no frontend/dist, so this
+// is skipped there automatically and the API behaves exactly as before.
+const frontendDist = path.resolve(process.env.FRONTEND_DIST ?? "../frontend/dist");
+const frontendIndex = path.join(frontendDist, "index.html");
+if (existsSync(frontendIndex)) {
+  app.use(express.static(frontendDist));
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(frontendIndex);
+  });
+  // eslint-disable-next-line no-console
+  console.log(`[studio] serving frontend from ${frontendDist}`);
+}
 
 // ── Error handling: technical details stay in server logs ──────────────
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
