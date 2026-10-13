@@ -221,10 +221,11 @@ function encodeFrames(job: Job, framesDir: string, outPath: string, totalFrames:
       "-i", pattern,
       "-frames:v", String(totalFrames),
       "-c:v", "libx264",
-      // Stock-ready quality: crf 18 + medium preset. Larger file than crf 20/veryfast,
-      // but visually near-lossless and well within Adobe Stock's 3.9 GB limit.
-      "-preset", "medium",
-      "-crf", "18",
+      // Render free-tier CPU is throttled: use veryfast so a 10s/720p encode
+      // finishes in well under a minute instead of several. crf 20 is still
+      // visually clean and far inside Adobe Stock's 3.9 GB limit.
+      "-preset", "veryfast",
+      "-crf", "20",
       // JPEG frames are full-range (pc); convert to TV/limited range so the MP4 is
       // standard yuv420p — some players/editors mishandle yuvj420p (full range).
       "-vf", "scale=in_range=pc:out_range=tv",
